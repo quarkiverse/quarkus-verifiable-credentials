@@ -1,0 +1,5 @@
+name: Quarkus Verifiable Credentials
+release:
+  current-version: "999-SNAPSHOT"
+  next-version: 999-SNAPSHOT
+

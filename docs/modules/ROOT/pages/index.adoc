@@ -1,0 +1,30 @@
+= Quarkus - Verifiable Credentials
+:extension-status: experimental
+
+== Introduction
+
+This project enables Quarkus REST applications to act as Verifiable Credential Verifiers that follow the [OpenID for Verifiable Presentations](https://openid.net/specs/openid-4-verifiable-presentations-1_0.html) specification.
+
+== Installation
+
+Add this Maven dependency:
+
+[source,xml]
+----
+<dependency>
+    <groupId>io.quarkiverse.oidc-verifiable-credentials</groupId>
+    <artifactId>quarkus-verifiable-credentials</artifactId>
+</dependency>
+----
+
+[[getting-started]]
+== Getting Started
+
+
+== Testing
+
+[[extension-configuration-reference]]
+== Extension Configuration Reference
+
+include::includes/quarkus-verifiable-credentials.adoc[leveloffset=+1, opts=optional]
+

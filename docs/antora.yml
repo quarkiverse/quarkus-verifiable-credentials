@@ -1,0 +1,5 @@
+name: quarkus-verifiable-credentials
+title: Quarkus Verifiable Credentials
+version: dev
+nav:
+  - modules/ROOT/nav.adoc
