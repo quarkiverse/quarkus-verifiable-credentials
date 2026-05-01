@@ -14,7 +14,7 @@ To get started, add the dependency:
 ```xml
 <dependency>
     <groupId>io.quarkiverse.oidc-verifiable-credentials</groupId>
-    <artifactId>quarkus-verifiable-credentials</artifactId>
+    <artifactId>quarkus-verifiable-presentations</artifactId>
 </dependency>
 ```
 

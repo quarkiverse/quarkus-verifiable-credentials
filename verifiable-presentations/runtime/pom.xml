@@ -4,14 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>io.quarkiverse.verifiable-credentials</groupId>
-        <artifactId>quarkus-credential-issuer-metadata-parent</artifactId>
+        <artifactId>quarkus-verifiable-presentations-parent</artifactId>
         <version>999-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>quarkus-credential-issuer-metadata</artifactId>
-    <name>Quarkus - Credential Issuer Metadata - Runtime</name>
-    <description>Credential Issuer Metadata</description>
+    <artifactId>quarkus-verifiable-presentations</artifactId>
+    <name>Quarkus - Verifiable Presentations - Runtime</name>
+    <description>Verifiable Presentations</description>
 
     <dependencies>
         <dependency>
@@ -22,6 +22,11 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-oidc</artifactId>
         </dependency>
+        <dependency>
+	    <groupId>com.authlete</groupId>
+	    <artifactId>sd-jwt</artifactId>
+	    <version>1.8</version>
+	</dependency>
     </dependencies>
 
     <build>

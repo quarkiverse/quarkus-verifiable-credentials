@@ -18,6 +18,11 @@
             <artifactId>quarkus-credential-issuer-metadata-deployment</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.verifiable-credentials</groupId>
+            <artifactId>quarkus-verifiable-presentations-deployment</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

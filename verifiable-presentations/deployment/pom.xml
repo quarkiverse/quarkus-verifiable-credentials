@@ -4,44 +4,33 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>io.quarkiverse.verifiable-credentials</groupId>
-        <artifactId>quarkus-credential-issuer-metadata-parent</artifactId>
+        <artifactId>quarkus-verifiable-presentations-parent</artifactId>
         <version>999-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>quarkus-credential-issuer-metadata</artifactId>
-    <name>Quarkus - Credential Issuer Metadata - Runtime</name>
-    <description>Credential Issuer Metadata</description>
+    <artifactId>quarkus-verifiable-presentations-deployment</artifactId>
+    <name>Quarkus - Verifiable Presentations - Deployment</name>
+    <description>Verifiable Presentations</description>
 
     <dependencies>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-core</artifactId>
+            <artifactId>quarkus-core-deployment</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-oidc</artifactId>
+            <artifactId>quarkus-oidc-deployment</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.verifiable-credentials</groupId>
+            <artifactId>quarkus-verifiable-presentations</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-extension-maven-plugin</artifactId>
-                <version>${quarkus.version}</version>
-                <executions>
-                    <execution>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>extension-descriptor</goal>
-                        </goals>
-                        <configuration>
-                            <deployment>${project.groupId}:${project.artifactId}-deployment:${project.version}</deployment>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <executions>

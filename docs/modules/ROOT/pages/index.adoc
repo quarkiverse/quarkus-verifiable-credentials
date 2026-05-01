@@ -1,4 +1,4 @@
-= Quarkus - Verifiable Credentials
+= Quarkus - Verifiable Presentations
 :extension-status: experimental
 
 == Introduction
@@ -13,7 +13,7 @@ Add this Maven dependency:
 ----
 <dependency>
     <groupId>io.quarkiverse.oidc-verifiable-credentials</groupId>
-    <artifactId>quarkus-verifiable-credentials</artifactId>
+    <artifactId>quarkus-verifiable-presentations</artifactId>
 </dependency>
 ----
 
@@ -26,5 +26,5 @@ Add this Maven dependency:
 [[extension-configuration-reference]]
 == Extension Configuration Reference
 
-include::includes/quarkus-verifiable-credentials.adoc[leveloffset=+1, opts=optional]
+include::includes/quarkus-verifiable-presentations.adoc[leveloffset=+1, opts=optional]
 
