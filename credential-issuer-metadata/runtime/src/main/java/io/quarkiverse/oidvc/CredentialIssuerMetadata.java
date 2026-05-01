@@ -1,4 +1,4 @@
-package io.quarkiverse.oidvp;
+package io.quarkiverse.oidvc;
 
 import java.net.URI;
 import java.util.Collections;
