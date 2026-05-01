@@ -1,6 +1,6 @@
 ---
 artifact: ${project.groupId}:${project.artifactId}:${project.version}
-name: "OpenID Credential Issuer Metadata"
+name: "OpenID for Verifiable Presentations"
 metadata:
   keywords:
   - "verifiable credentials"
@@ -10,4 +10,4 @@ metadata:
   status: "experimental"
   config:
   - "quarkus.oidc."
-  - "quarkus.oidvc."
+  - "quarkus.oidvp."
