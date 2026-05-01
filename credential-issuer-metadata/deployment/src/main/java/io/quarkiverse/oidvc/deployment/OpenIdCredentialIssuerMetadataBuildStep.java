@@ -1,4 +1,4 @@
-package io.quarkiverse.oidvp.deployment;
+package io.quarkiverse.oidvc.deployment;
 
 import java.util.function.BooleanSupplier;
 
@@ -6,8 +6,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 import org.jboss.jandex.DotName;
 
-import io.quarkiverse.oidvp.CredentialIssuerMetadata;
-import io.quarkiverse.oidvp.runtime.OpenIdVerifiablePresentationsRecorder;
+import io.quarkiverse.oidvc.CredentialIssuerMetadata;
+import io.quarkiverse.oidvc.runtime.OpenIdCredentialIssuerMetadataRecorder;
 import io.quarkus.arc.deployment.SyntheticBeanBuildItem;
 import io.quarkus.deployment.Feature;
 import io.quarkus.deployment.annotations.BuildProducer;
@@ -20,8 +20,8 @@ import io.quarkus.proxy.deployment.ProxyRegistryBuildItem;
 import io.quarkus.tls.deployment.spi.TlsRegistryBuildItem;
 import io.quarkus.vertx.core.deployment.CoreVertxBuildItem;
 
-@BuildSteps(onlyIf = OpenIdVerifiablePresentationsBuildStep.IsEnabled.class)
-public class OpenIdVerifiablePresentationsBuildStep {
+@BuildSteps(onlyIf = OpenIdCredentialIssuerMetadataBuildStep.IsEnabled.class)
+public class OpenIdCredentialIssuerMetadataBuildStep {
 
     private static final DotName CREDENTIAL_ISSUER_METADATA = DotName
             .createSimple(CredentialIssuerMetadata.class.getName());
@@ -34,7 +34,7 @@ public class OpenIdVerifiablePresentationsBuildStep {
     @BuildStep
     @Record(ExecutionTime.RUNTIME_INIT)
     public void generateBean(
-            OpenIdVerifiablePresentationsRecorder recorder,
+            OpenIdCredentialIssuerMetadataRecorder recorder,
             BuildProducer<SyntheticBeanBuildItem> beanProducer,
             CoreVertxBuildItem vertxBuildItem,
             TlsRegistryBuildItem tlsRegistryBuildItem,
@@ -50,7 +50,7 @@ public class OpenIdVerifiablePresentationsBuildStep {
     }
 
     public static class IsEnabled implements BooleanSupplier {
-        OpenIdVerifiablePresentationsBuildTimeConfig config;
+        OpenIdCredentialIssuerMetadataBuildTimeConfig config;
 
         public boolean getAsBoolean() {
             return config.enabled();

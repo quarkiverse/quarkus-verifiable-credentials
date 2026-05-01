@@ -15,7 +15,7 @@
         <!-- Make sure the doc is built after the other artifacts -->
         <dependency>
             <groupId>io.quarkiverse.verifiable-credentials</groupId>
-            <artifactId>quarkus-verifiable-presentations-deployment</artifactId>
+            <artifactId>quarkus-credential-issuer-metadata-deployment</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

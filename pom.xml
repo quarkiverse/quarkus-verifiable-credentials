@@ -14,7 +14,7 @@
     <name>Quarkus Verifiable Credential - Parent</name>
 
     <modules>
-        <module>verifier</module>
+        <module>credential-issuer-metadata</module>
     </modules>
 
     <scm>

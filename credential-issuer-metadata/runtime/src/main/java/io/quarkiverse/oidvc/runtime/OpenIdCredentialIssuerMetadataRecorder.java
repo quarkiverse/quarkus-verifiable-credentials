@@ -1,9 +1,9 @@
-package io.quarkiverse.oidvp.runtime;
+package io.quarkiverse.oidvc.runtime;
 
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import io.quarkiverse.oidvp.CredentialIssuerMetadata;
+import io.quarkiverse.oidvc.CredentialIssuerMetadata;
 import io.quarkus.oidc.common.runtime.OidcCommonUtils;
 import io.quarkus.oidc.common.runtime.OidcTlsSupport;
 import io.quarkus.oidc.runtime.OidcConfig;
@@ -17,17 +17,17 @@ import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.mutiny.ext.web.client.WebClient;
 
 @Recorder
-public class OpenIdVerifiablePresentationsRecorder {
+public class OpenIdCredentialIssuerMetadataRecorder {
 
     private static final String CREDENTIAL_ISSUER_METADATA_PATH = "/.well-known/openid-credential-issuer";
 
     private final RuntimeValue<OidcConfig> oidcConfig;
-    private final RuntimeValue<OpenIdVerifiablePresentationsConfig> oidvpConfig;
+    private final RuntimeValue<OpenIdCredentialIssuerMetadataConfig> oidvcConfig;
 
-    public OpenIdVerifiablePresentationsRecorder(final RuntimeValue<OidcConfig> oidcConfig,
-            final RuntimeValue<OpenIdVerifiablePresentationsConfig> oidvpConfig) {
+    public OpenIdCredentialIssuerMetadataRecorder(final RuntimeValue<OidcConfig> oidcConfig,
+            final RuntimeValue<OpenIdCredentialIssuerMetadataConfig> oidvcConfig) {
         this.oidcConfig = oidcConfig;
-        this.oidvpConfig = oidvpConfig;
+        this.oidvcConfig = oidvcConfig;
     }
 
     public Supplier<CredentialIssuerMetadata> setup(Supplier<Vertx> vertx, Supplier<TlsConfigurationRegistry> registry,
@@ -43,7 +43,7 @@ public class OpenIdVerifiablePresentationsRecorder {
 
         WebClient webClient = WebClient.create(new io.vertx.mutiny.core.Vertx(vertx.get()), options);
 
-        String baseCredentialIssuerUrl = oidvpConfig.getValue().credentialIssuerUrl().orElse(authServerUrl);
+        String baseCredentialIssuerUrl = oidvcConfig.getValue().credentialIssuerUrl().orElse(authServerUrl);
 
         String credentialIssuerMetadataUrl = OidcCommonUtils.getOidcEndpointUrl(baseCredentialIssuerUrl,
                 Optional.of(CREDENTIAL_ISSUER_METADATA_PATH));

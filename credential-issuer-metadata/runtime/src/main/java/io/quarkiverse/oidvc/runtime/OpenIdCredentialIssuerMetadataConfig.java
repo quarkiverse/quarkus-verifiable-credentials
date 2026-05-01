@@ -1,4 +1,4 @@
-package io.quarkiverse.oidvp.runtime;
+package io.quarkiverse.oidvc.runtime;
 
 import java.util.Optional;
 
@@ -7,11 +7,11 @@ import io.quarkus.runtime.annotations.ConfigRoot;
 import io.smallrye.config.ConfigMapping;
 
 /**
- * Configuration for OpenId Verifiable Presentations.
+ * Configuration for OpenId Credential Issuer Metadata.
  */
-@ConfigMapping(prefix = "quarkus.oidvp")
+@ConfigMapping(prefix = "quarkus.oidvc")
 @ConfigRoot(phase = ConfigPhase.RUN_TIME)
-public interface OpenIdVerifiablePresentationsConfig {
+public interface OpenIdCredentialIssuerMetadataConfig {
 
     /**
      * Absolute credential issuer url
