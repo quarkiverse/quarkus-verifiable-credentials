@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.quarkiverse</groupId>
+        <artifactId>quarkiverse-parent</artifactId>
+        <version>21</version>
+    </parent>
+    <groupId>io.quarkiverse.verifiable-credentials</groupId>
+    <artifactId>quarkus-verifiable-credentials-parent</artifactId>
+    <version>999-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Quarkus Verifiable Credential - Parent</name>
+
+    <modules>
+        <module>verifier</module>
+    </modules>
+
+    <scm>
+        <connection>scm:git:git@github.com:quarkiverse/quarkus-verifiable-credentials.git</connection>
+        <developerConnection>scm:git:git@github.com:quarkiverse/quarkus-verifiable-credentials.git</developerConnection>
+        <url>https://github.com/quarkiverse/quarkus-verifiable-credentials</url>
+        <tag>HEAD</tag>
+  </scm>
+
+    <properties>
+        <quarkus.version>3.35.1</quarkus.version>
+        <sundrio.version>0.300.0</sundrio.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-bom</artifactId>
+                <version>${quarkus.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-maven-plugin</artifactId>
+                    <version>${quarkus.version}</version>
+                    <extensions>true</extensions>
+                </plugin>
+                <plugin>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-config-doc-maven-plugin</artifactId>
+                    <version>${quarkus.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>io.sundr</groupId>
+                <artifactId>sundr-maven-plugin</artifactId>
+                <version>${sundrio.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate-bom</goal>
+                        </goals>
+                        <configuration>
+                            <boms>
+                                <bom>
+                                    <artifactId>quarkus-verifiable-credentials-bom</artifactId>
+                                    <name>Quarkus Verifiable Credentials - BOM</name>
+                                    <description>Centralized dependencyManagement for the Quarkus Verifiable Credentials Project</description>
+                                    <modules>
+                                        <excludes>
+                                        </excludes>
+                                    </modules>
+                                </bom>
+                            </boms>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>docs</id>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>!true</value>
+                </property>
+            </activation>
+            <modules>
+                <module>docs</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>jdk25+</id>
+            <activation>
+                <jdk>[25,)</jdk>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <!-- See for example https://github.com/jboss/jboss-threads/pull/215 -->
+                            <argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
