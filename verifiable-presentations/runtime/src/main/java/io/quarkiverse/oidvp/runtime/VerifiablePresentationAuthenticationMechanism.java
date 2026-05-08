@@ -8,7 +8,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 import org.jose4j.jwa.AlgorithmConstraints;
 import org.jose4j.jwa.AlgorithmConstraints.ConstraintType;
@@ -49,16 +48,13 @@ import io.vertx.ext.web.RoutingContext;
 public class VerifiablePresentationAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     private static final Logger LOG = Logger.getLogger(VerifiablePresentationAuthenticationMechanism.class);
-    private static final String REQUEST_CREDENTIAL_PATH = "/best-software-company/request-credential";
-    private static final String PRESENTATION_PATH = "/best-software-company/presentation";
-    private static final String HOME_PATH = "/best-software-company";
 
     private final ConcurrentHashMap<String, List<VerifiablePresentation>> sessions = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> responseCodeToSessionId = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> stateToNonce = new ConcurrentHashMap<>();
 
-    @ConfigProperty(name = "verifier.host")
-    String verifierHost;
+    @Inject
+    VerifiablePresentationsConfig config;
 
     @Inject
     TenantConfigBean tenantConfigBean;
@@ -67,12 +63,12 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
-        if (context.request().path().equals(REQUEST_CREDENTIAL_PATH)) {
+        if (context.request().path().equals(config.requestCredentialPath())) {
             String state = UUID.randomUUID().toString();
             String nonce = UUID.randomUUID().toString();
             stateToNonce.put(state, nonce);
 
-            String presentationUrl = verifierHost + PRESENTATION_PATH;
+            String presentationUrl = config.verifierHost() + config.presentationPath();
             String authorizationUri = "response_mode=direct_post"
                     + "&client_id=redirect_uri:" + OidcCommonUtils.urlEncode(presentationUrl)
                     + "&response_uri=" + OidcCommonUtils.urlEncode(presentationUrl)
@@ -84,21 +80,21 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
             context.response().addCookie(Cookie.cookie("vp_state", state)
                     .setPath("/")
                     .setHttpOnly(true)
-                    //.setSecure(true)
+                    .setSecure(context.request().isSSL())
                     .setMaxAge(300));
             return Uni.createFrom().nullItem();
         }
 
-        if (!context.request().path().startsWith(PRESENTATION_PATH)) {
+        if (!context.request().path().startsWith(config.presentationPath())) {
             return Uni.createFrom().nullItem();
         }
 
-        if (context.request().method() == HttpMethod.POST && context.request().path().equals(PRESENTATION_PATH)) {
+        if (context.request().method() == HttpMethod.POST && context.request().path().equals(config.presentationPath())) {
             return OidcUtils.getFormUrlEncodedData(context).onItem()
                     .transformToUni(requestParams -> authenticateVpToken(context, requestParams));
         }
 
-        if (context.request().method() == HttpMethod.GET && context.request().path().equals(PRESENTATION_PATH)) {
+        if (context.request().method() == HttpMethod.GET && context.request().path().equals(config.presentationPath())) {
             String responseCode = context.request().getParam("response_code");
             Cookie stateCookie = context.request().getCookie("vp_state");
             if (responseCode != null && stateCookie != null) {
@@ -178,11 +174,11 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
         context.response().addCookie(Cookie.cookie("vp_session", sessionId)
                 .setPath("/")
                 .setHttpOnly(true)
-                //.setSecure(true)
+                .setSecure(context.request().isSSL())
                 .setMaxAge(300));
 
         context.response().setStatusCode(HttpResponseStatus.FOUND.code());
-        context.response().putHeader("Location", PRESENTATION_PATH);
+        context.response().putHeader("Location", config.presentationPath());
         context.response().end();
 
         return Uni.createFrom().nullItem();
@@ -295,7 +291,7 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
             throw new AuthenticationFailedException();
         }
 
-        String expectedClientId = "redirect_uri:" + verifierHost + PRESENTATION_PATH;
+        String expectedClientId = "redirect_uri:" + config.verifierHost() + config.presentationPath();
         Object audClaim = bindingClaims.getValue("aud");
         boolean audValid = false;
         if (audClaim instanceof String audString) {
@@ -322,12 +318,12 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
     @Override
     public Uni<ChallengeData> getChallenge(RoutingContext context) {
         return Uni.createFrom().item(
-                new ChallengeData(HttpResponseStatus.FOUND.code(), "Location", HOME_PATH));
+                new ChallengeData(HttpResponseStatus.FOUND.code(), "Location", config.homePath()));
     }
 
     @Override
     public Uni<HttpCredentialTransport> getCredentialTransport(RoutingContext context) {
         return Uni.createFrom().item(
-                new HttpCredentialTransport(HttpCredentialTransport.Type.POST, PRESENTATION_PATH));
+                new HttpCredentialTransport(HttpCredentialTransport.Type.POST, config.presentationPath()));
     }
 }
