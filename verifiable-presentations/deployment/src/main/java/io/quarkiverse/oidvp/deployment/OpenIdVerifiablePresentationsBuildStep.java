@@ -10,9 +10,17 @@ import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.BuildSteps;
 import io.quarkus.deployment.builditem.ExtensionSslNativeSupportBuildItem;
+import io.quarkus.deployment.builditem.FeatureBuildItem;
 
 @BuildSteps(onlyIf = OpenIdVerifiablePresentationsBuildStep.IsEnabled.class)
 public class OpenIdVerifiablePresentationsBuildStep {
+
+    private static final String FEATURE = "verifiable-presentations";
+
+    @BuildStep
+    FeatureBuildItem feature() {
+        return new FeatureBuildItem(FEATURE);
+    }
 
     @BuildStep
     public void additionalBeans(BuildProducer<AdditionalBeanBuildItem> additionalBeans) {
