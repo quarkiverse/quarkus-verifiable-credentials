@@ -16,6 +16,7 @@ import io.quarkus.deployment.annotations.BuildSteps;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.ExtensionSslNativeSupportBuildItem;
+import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.proxy.deployment.ProxyRegistryBuildItem;
 import io.quarkus.tls.deployment.spi.TlsRegistryBuildItem;
 import io.quarkus.vertx.core.deployment.CoreVertxBuildItem;
@@ -23,8 +24,14 @@ import io.quarkus.vertx.core.deployment.CoreVertxBuildItem;
 @BuildSteps(onlyIf = OpenIdCredentialIssuerMetadataBuildStep.IsEnabled.class)
 public class OpenIdCredentialIssuerMetadataBuildStep {
 
+    private static final String FEATURE = "credential-issuer-metadata";
     private static final DotName CREDENTIAL_ISSUER_METADATA = DotName
             .createSimple(CredentialIssuerMetadata.class.getName());
+
+    @BuildStep
+    FeatureBuildItem feature() {
+        return new FeatureBuildItem(FEATURE);
+    }
 
     @BuildStep
     ExtensionSslNativeSupportBuildItem enableSslInNative() {
