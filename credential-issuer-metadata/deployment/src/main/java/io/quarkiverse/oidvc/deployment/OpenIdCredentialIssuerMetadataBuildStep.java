@@ -9,7 +9,6 @@ import org.jboss.jandex.DotName;
 import io.quarkiverse.oidvc.CredentialIssuerMetadata;
 import io.quarkiverse.oidvc.runtime.OpenIdCredentialIssuerMetadataRecorder;
 import io.quarkus.arc.deployment.SyntheticBeanBuildItem;
-import io.quarkus.deployment.Feature;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.BuildSteps;
@@ -35,7 +34,7 @@ public class OpenIdCredentialIssuerMetadataBuildStep {
 
     @BuildStep
     ExtensionSslNativeSupportBuildItem enableSslInNative() {
-        return new ExtensionSslNativeSupportBuildItem(Feature.OIDC);
+        return new ExtensionSslNativeSupportBuildItem(FEATURE);
     }
 
     @BuildStep
