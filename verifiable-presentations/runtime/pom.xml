@@ -20,13 +20,42 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-oidc</artifactId>
+            <artifactId>quarkus-vertx</artifactId>
         </dependency>
         <dependency>
-	    <groupId>com.authlete</groupId>
-	    <artifactId>sd-jwt</artifactId>
-	    <version>1.9</version>
-	</dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-vertx-http</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-tls-registry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-proxy-registry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.smallrye.reactive</groupId>
+            <artifactId>smallrye-mutiny-vertx-web-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.bitbucket.b_c</groupId>
+            <artifactId>jose4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.authlete</groupId>
+            <artifactId>sd-jwt</artifactId>
+            <version>1.9</version>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.verifiable-credentials</groupId>
+            <artifactId>quarkus-credential-issuer-metadata</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

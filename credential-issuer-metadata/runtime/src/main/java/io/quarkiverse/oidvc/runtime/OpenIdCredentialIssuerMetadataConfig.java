@@ -14,8 +14,18 @@ import io.smallrye.config.ConfigMapping;
 public interface OpenIdCredentialIssuerMetadataConfig {
 
     /**
-     * Absolute credential issuer url
+     * Absolute credential issuer URL
      */
-    Optional<String> credentialIssuerUrl();
+    String credentialIssuerUrl();
+
+    /**
+     * Named TLS configuration to use for connecting to the credential issuer
+     */
+    Optional<String> tlsConfigurationName();
+
+    /**
+     * Named proxy configuration to use for connecting to the credential issuer
+     */
+    Optional<String> proxyConfigurationName();
 
 }

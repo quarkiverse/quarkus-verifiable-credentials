@@ -1,5 +1,9 @@
 package io.quarkiverse.oidvp.runtime;
 
+import java.time.Duration;
+import java.util.Optional;
+
+import io.quarkus.runtime.annotations.ConfigGroup;
 import io.quarkus.runtime.annotations.ConfigPhase;
 import io.quarkus.runtime.annotations.ConfigRoot;
 import io.smallrye.config.ConfigMapping;
@@ -30,5 +34,19 @@ public interface VerifiablePresentationsConfig {
      * Home path for the verifier application
      */
     String homePath();
+
+    /**
+     * Token verification configuration
+     */
+    Token token();
+
+    @ConfigGroup
+    interface Token {
+        /**
+         * Maximum age of the credential token since it was issued.
+         * If set, the expiration time claim is not required.
+         */
+        Optional<Duration> age();
+    }
 
 }

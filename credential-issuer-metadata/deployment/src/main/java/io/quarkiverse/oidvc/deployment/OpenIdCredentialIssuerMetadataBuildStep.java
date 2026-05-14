@@ -1,6 +1,7 @@
 package io.quarkiverse.oidvc.deployment;
 
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -9,7 +10,6 @@ import org.jboss.jandex.DotName;
 import io.quarkiverse.oidvc.CredentialIssuerMetadata;
 import io.quarkiverse.oidvc.runtime.OpenIdCredentialIssuerMetadataRecorder;
 import io.quarkus.arc.deployment.SyntheticBeanBuildItem;
-import io.quarkus.deployment.Feature;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.BuildSteps;
@@ -35,25 +35,28 @@ public class OpenIdCredentialIssuerMetadataBuildStep {
 
     @BuildStep
     ExtensionSslNativeSupportBuildItem enableSslInNative() {
-        return new ExtensionSslNativeSupportBuildItem(Feature.OIDC);
+        return new ExtensionSslNativeSupportBuildItem(FEATURE);
     }
 
     @BuildStep
     @Record(ExecutionTime.RUNTIME_INIT)
-    public void generateBean(
+    public CredentialIssuerMetadataBuildItem generateBean(
             OpenIdCredentialIssuerMetadataRecorder recorder,
             BuildProducer<SyntheticBeanBuildItem> beanProducer,
             CoreVertxBuildItem vertxBuildItem,
             TlsRegistryBuildItem tlsRegistryBuildItem,
             ProxyRegistryBuildItem proxyRegistryBuildItem) {
+        Supplier<CredentialIssuerMetadata> supplier = recorder.setup(vertxBuildItem.getVertx(),
+                tlsRegistryBuildItem.registry(),
+                proxyRegistryBuildItem.registry());
         beanProducer.produce(SyntheticBeanBuildItem
                 .configure(CREDENTIAL_ISSUER_METADATA)
                 .setRuntimeInit()
                 .defaultBean()
                 .scope(ApplicationScoped.class)
-                .supplier(recorder.setup(vertxBuildItem.getVertx(), tlsRegistryBuildItem.registry(),
-                        proxyRegistryBuildItem.registry()))
+                .supplier(supplier)
                 .done());
+        return new CredentialIssuerMetadataBuildItem(supplier);
     }
 
     public static class IsEnabled implements BooleanSupplier {
