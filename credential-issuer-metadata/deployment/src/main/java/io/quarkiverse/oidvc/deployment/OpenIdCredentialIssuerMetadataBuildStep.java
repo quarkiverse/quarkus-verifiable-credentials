@@ -1,6 +1,7 @@
 package io.quarkiverse.oidvc.deployment;
 
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -39,20 +40,23 @@ public class OpenIdCredentialIssuerMetadataBuildStep {
 
     @BuildStep
     @Record(ExecutionTime.RUNTIME_INIT)
-    public void generateBean(
+    public CredentialIssuerMetadataBuildItem generateBean(
             OpenIdCredentialIssuerMetadataRecorder recorder,
             BuildProducer<SyntheticBeanBuildItem> beanProducer,
             CoreVertxBuildItem vertxBuildItem,
             TlsRegistryBuildItem tlsRegistryBuildItem,
             ProxyRegistryBuildItem proxyRegistryBuildItem) {
+        Supplier<CredentialIssuerMetadata> supplier = recorder.setup(vertxBuildItem.getVertx(),
+                tlsRegistryBuildItem.registry(),
+                proxyRegistryBuildItem.registry());
         beanProducer.produce(SyntheticBeanBuildItem
                 .configure(CREDENTIAL_ISSUER_METADATA)
                 .setRuntimeInit()
                 .defaultBean()
                 .scope(ApplicationScoped.class)
-                .supplier(recorder.setup(vertxBuildItem.getVertx(), tlsRegistryBuildItem.registry(),
-                        proxyRegistryBuildItem.registry()))
+                .supplier(supplier)
                 .done());
+        return new CredentialIssuerMetadataBuildItem(supplier);
     }
 
     public static class IsEnabled implements BooleanSupplier {

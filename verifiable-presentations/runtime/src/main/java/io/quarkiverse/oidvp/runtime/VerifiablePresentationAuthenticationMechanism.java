@@ -1,9 +1,13 @@
 package io.quarkiverse.oidvp.runtime;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -22,13 +26,6 @@ import com.authlete.sd.SDJWT;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.quarkiverse.oidvp.VerifiablePresentation;
 import io.quarkiverse.oidvp.VerifiablePresentations;
-import io.quarkus.oidc.OidcTenantConfig;
-import io.quarkus.oidc.common.runtime.OidcCommonUtils;
-import io.quarkus.oidc.runtime.OidcProvider;
-import io.quarkus.oidc.runtime.OidcUtils;
-import io.quarkus.oidc.runtime.TenantConfigBean;
-import io.quarkus.oidc.runtime.TenantConfigContext;
-import io.quarkus.oidc.runtime.TokenVerificationResult;
 import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -37,6 +34,8 @@ import io.quarkus.vertx.http.runtime.security.ChallengeData;
 import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
 import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.subscription.UniEmitter;
+import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpMethod;
@@ -57,52 +56,53 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
     VerifiablePresentationsConfig config;
 
     @Inject
-    TenantConfigBean tenantConfigBean;
+    CredentialJwtVerifier credentialJwtVerifier;
 
     static final String VERIFIABLE_PRESENTATIONS_KEY = "vp_presentations";
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
-        if (context.request().path().equals(config.requestCredentialPath())) {
+        String path = context.request().path();
+        HttpMethod method = context.request().method();
+
+        if (path.equals(config.requestCredentialPath())) {
+            LOG.debug("Handling credential request, creating authorization URI");
             String state = UUID.randomUUID().toString();
             String nonce = UUID.randomUUID().toString();
             stateToNonce.put(state, nonce);
 
             String presentationUrl = config.verifierHost() + config.presentationPath();
             String authorizationUri = "response_mode=direct_post"
-                    + "&client_id=redirect_uri:" + OidcCommonUtils.urlEncode(presentationUrl)
-                    + "&response_uri=" + OidcCommonUtils.urlEncode(presentationUrl)
+                    + "&client_id=redirect_uri:" + URLEncoder.encode(presentationUrl, StandardCharsets.UTF_8)
+                    + "&response_uri=" + URLEncoder.encode(presentationUrl, StandardCharsets.UTF_8)
                     + "&response_type=vp_token"
                     + "&nonce=" + nonce
                     + "&state=" + state;
             context.put("vp_authorization_uri", authorizationUri);
 
-            context.response().addCookie(Cookie.cookie("vp_state", state)
-                    .setPath("/")
-                    .setHttpOnly(true)
-                    .setSecure(context.request().isSSL())
-                    .setMaxAge(300));
             return Uni.createFrom().nullItem();
         }
 
-        if (!context.request().path().startsWith(config.presentationPath())) {
+        if (!path.startsWith(config.presentationPath())) {
             return Uni.createFrom().nullItem();
         }
 
-        if (context.request().method() == HttpMethod.POST && context.request().path().equals(config.presentationPath())) {
-            return OidcUtils.getFormUrlEncodedData(context).onItem()
+        if (method == HttpMethod.POST && path.equals(config.presentationPath())) {
+            LOG.debug("Received VP token POST, processing form data");
+            return getFormUrlEncodedData(context).onItem()
                     .transformToUni(requestParams -> authenticateVpToken(context, requestParams));
         }
 
-        if (context.request().method() == HttpMethod.GET && context.request().path().equals(config.presentationPath())) {
+        if (method == HttpMethod.GET && path.equals(config.presentationPath())) {
             String responseCode = context.request().getParam("response_code");
-            Cookie stateCookie = context.request().getCookie("vp_state");
-            if (responseCode != null && stateCookie != null) {
-                return exchangeResponseCodeForSession(context, responseCode, stateCookie.getValue());
+            if (responseCode != null) {
+                LOG.debug("Exchanging response code for session");
+                return exchangeResponseCodeForSession(context, responseCode);
             }
 
             Cookie sessionCookie = context.request().getCookie("vp_session");
             if (sessionCookie != null) {
+                LOG.debug("Authenticating with existing session");
                 return authenticateWithSession(context, sessionCookie.getValue());
             }
         }
@@ -115,30 +115,31 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
         String state = requestParams.get("state");
 
         if (vpToken == null || vpToken.isEmpty()) {
+            LOG.debug("No vp_token in request parameters");
             return Uni.createFrom().nullItem();
         }
 
-        Cookie stateCookie = context.request().getCookie("vp_state");
-        if (stateCookie == null) {
-            LOG.warn("State cookie is missing");
-            return Uni.createFrom().failure(new AuthenticationFailedException());
-        }
-        if (!stateCookie.getValue().equals(state)) {
-            LOG.warn("State cookie does not match the presentation state");
-            return Uni.createFrom().failure(new AuthenticationFailedException());
-        }
+        LOG.debug("Parsing SD-JWT from vp_token");
         SDJWT sdJwt = SDJWT.parse(vpToken);
 
-        TenantConfigContext configContext = tenantConfigBean.getDefaultTenant();
-        TokenVerificationResult credentialJwtResult = verifyCredentialJwt(
-                configContext.provider(), configContext.getOidcTenantConfig(), sdJwt.getCredentialJwt());
+        LOG.debug("Verifying credential JWT");
+        JsonObject credentialClaims;
+        try {
+            credentialClaims = credentialJwtVerifier.verify(sdJwt.getCredentialJwt());
+        } catch (InvalidJwtException ex) {
+            LOG.debugf("Credential JWT verification failed: %s", ex.getMessage());
+            throw new AuthenticationFailedException(ex.getMessage());
+        }
 
-        verifyDisclosureHashes(sdJwt, credentialJwtResult);
-        verifyKeyBinding(sdJwt, credentialJwtResult, state);
+        LOG.debug("Verifying disclosure hashes");
+        verifyDisclosureHashes(sdJwt, credentialClaims);
 
-        JsonObject credentialClaims = credentialJwtResult.localVerificationResult();
-        String sub = credentialClaims.getString("sub");
+        LOG.debug("Verifying key binding");
+        verifyKeyBinding(sdJwt, credentialClaims, state);
+
+        String sub = resolveSubject(credentialClaims, sdJwt);
         String vct = credentialClaims.getString("vct");
+        LOG.debugf("VP token verified successfully, sub=%s, vct=%s", sub, vct);
 
         VerifiablePresentation vp = new VerifiablePresentation(sdJwt, sub, vct);
 
@@ -158,7 +159,7 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
     }
 
     private Uni<SecurityIdentity> exchangeResponseCodeForSession(RoutingContext context,
-            String responseCode, String transactionId) {
+            String responseCode) {
         String sessionId = responseCodeToSessionId.remove(responseCode);
         if (sessionId == null) {
             LOG.warn("Invalid or already used response_code");
@@ -170,7 +171,7 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
             return Uni.createFrom().failure(new AuthenticationFailedException());
         }
 
-        context.response().removeCookie("vp_state");
+        LOG.debug("Response code exchanged for session, redirecting");
         context.response().addCookie(Cookie.cookie("vp_session", sessionId)
                 .setPath("/")
                 .setHttpOnly(true)
@@ -191,6 +192,7 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
             return Uni.createFrom().failure(new AuthenticationFailedException());
         }
 
+        LOG.debugf("Session authenticated with %d presentation(s)", presentations.size());
         context.response().removeCookie("vp_session");
 
         VerifiablePresentations verifiablePresentations = new VerifiablePresentations();
@@ -217,8 +219,7 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
         return sessionId;
     }
 
-    private void verifyDisclosureHashes(SDJWT sdJwt, TokenVerificationResult credentialJwtResult) {
-        JsonObject credentialClaims = credentialJwtResult.localVerificationResult();
+    private void verifyDisclosureHashes(SDJWT sdJwt, JsonObject credentialClaims) {
         JsonArray sdArray = credentialClaims.getJsonArray("_sd");
         if (sdArray == null) {
             LOG.warn("Credential JWT does not contain _sd array");
@@ -230,11 +231,10 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
                 throw new AuthenticationFailedException();
             }
         }
+        LOG.debugf("All %d disclosure hash(es) verified", sdJwt.getDisclosures().size());
     }
 
-    private void verifyKeyBinding(SDJWT sdJwt, TokenVerificationResult credentialJwtResult, String state) {
-        JsonObject credentialClaims = credentialJwtResult.localVerificationResult();
-
+    private void verifyKeyBinding(SDJWT sdJwt, JsonObject credentialClaims, String state) {
         JsonObject cnf = credentialClaims.getJsonObject("cnf");
         if (cnf == null) {
             LOG.warn("Confirmation is missing");
@@ -254,6 +254,7 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
             throw new AuthenticationFailedException();
         }
 
+        LOG.debug("Verifying key binding JWT signature");
         try {
             JsonWebSignature jws = new JsonWebSignature();
             jws.setAlgorithmConstraints(new AlgorithmConstraints(ConstraintType.PERMIT, "ES256"));
@@ -267,8 +268,11 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
             LOG.warn("Key binding token signature can not be verified");
             throw new AuthenticationFailedException();
         }
+        LOG.debug("Key binding JWT signature verified");
 
-        JsonObject bindingClaims = OidcUtils.decodeJwtContent(sdJwt.getBindingJwt());
+        JsonObject bindingClaims = decodeJwtContent(sdJwt.getBindingJwt());
+
+        LOG.debug("Verifying sd_hash claim");
         String sdHashClaim = bindingClaims.getString("sd_hash");
         if (sdHashClaim == null) {
             LOG.warn("Key binding JWT does not contain sd_hash claim");
@@ -280,6 +284,7 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
             throw new AuthenticationFailedException();
         }
 
+        LOG.debug("Verifying nonce claim");
         String expectedNonce = stateToNonce.remove(state);
         if (expectedNonce == null) {
             LOG.warn("No nonce registered for the given state");
@@ -291,6 +296,7 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
             throw new AuthenticationFailedException();
         }
 
+        LOG.debug("Verifying audience claim");
         String expectedClientId = "redirect_uri:" + config.verifierHost() + config.presentationPath();
         Object audClaim = bindingClaims.getValue("aud");
         boolean audValid = false;
@@ -303,16 +309,7 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
             LOG.warn("Key binding JWT aud does not match the expected client_id");
             throw new AuthenticationFailedException();
         }
-    }
-
-    private static TokenVerificationResult verifyCredentialJwt(OidcProvider provider, OidcTenantConfig oidcConfig,
-            String credentialJwt) {
-        try {
-            final boolean enforceExpClaim = oidcConfig.token().age().isEmpty();
-            return provider.verifyJwtToken(credentialJwt, false, false, null, enforceExpClaim);
-        } catch (InvalidJwtException ex) {
-            throw new RuntimeException(ex.getMessage());
-        }
+        LOG.debug("Key binding verification completed successfully");
     }
 
     @Override
@@ -325,5 +322,42 @@ public class VerifiablePresentationAuthenticationMechanism implements HttpAuthen
     public Uni<HttpCredentialTransport> getCredentialTransport(RoutingContext context) {
         return Uni.createFrom().item(
                 new HttpCredentialTransport(HttpCredentialTransport.Type.POST, config.presentationPath()));
+    }
+
+    private static Uni<MultiMap> getFormUrlEncodedData(RoutingContext context) {
+        context.request().setExpectMultipart(true);
+        return Uni.createFrom().emitter(new Consumer<UniEmitter<? super MultiMap>>() {
+            @Override
+            public void accept(UniEmitter<? super MultiMap> t) {
+                context.request().endHandler(new Handler<Void>() {
+                    @Override
+                    public void handle(Void event) {
+                        t.complete(context.request().formAttributes());
+                    }
+                });
+                context.request().resume();
+            }
+        });
+    }
+
+    private static String resolveSubject(JsonObject credentialClaims, SDJWT sdJwt) {
+        String sub = credentialClaims.getString("sub");
+        if (sub == null) {
+            for (Disclosure disclosure : sdJwt.getDisclosures()) {
+                if ("sub".equals(disclosure.getClaimName())) {
+                    return (String) disclosure.getClaimValue();
+                }
+            }
+        }
+        return sub;
+    }
+
+    private static JsonObject decodeJwtContent(String jwt) {
+        String[] parts = jwt.split("\\.");
+        if (parts.length != 3) {
+            return null;
+        }
+        String json = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        return new JsonObject(json);
     }
 }
